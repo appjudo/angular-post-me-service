@@ -1,6 +1,6 @@
 {
   "name": "angular-post-me-service",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "author": "AppJudo Inc.",
   "license": "MIT",
   "description": "Angular service using the post-me library for bidirectional communication between browser windows/frames via window.postMessage",

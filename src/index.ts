@@ -15,59 +15,66 @@ interface QueuedRequest {
 @Injectable({
   providedIn: 'root'
 })
-export default class PostMeService implements OnDestroy {
+export default class PostMessageService implements OnDestroy {
   private connection?: Connection;
   private remoteHandle?: RemoteHandle;
   private queuedRequests: QueuedRequest[];
   private methods: MethodsType;
-  
+
   constructor() {
     this.methods = {};
     this.queuedRequests = [];
   }
 
-  registerMethod(methodName: string, method: MethodsType[string]) {
+  registerMethod(methodName: string, method: MethodsType[string]): void {
     this.methods[methodName] = method;
   }
 
-  unregisterMethod(methodName: string) {
+  registerMethods(methods: MethodsType): void {
+    Object.assign(this.methods, methods);
+  }
+
+  unregisterMethod(methodName: string): void {
     delete this.methods[methodName];
   }
 
-  connectToChildWindow(remoteWindow: Window, remoteOrigin: string, ...args: any) {
+  connectToChildWindow(remoteWindow: Window, remoteOrigin: string, ...args: any): Promise<Connection | undefined> {
+    this.disconnect();
     const handshake = (messenger: WindowMessenger, methods?: MethodsType) => (
       ParentHandshake(messenger, methods, ...args)
     );
     return this.connectToWindow(remoteWindow, remoteOrigin, handshake);
   }
 
-  connectToParentWindow(remoteWindow: Window, remoteOrigin: string) {
+  connectToParentWindow(remoteWindow: Window, remoteOrigin: string): Promise<Connection | undefined> {
+    this.disconnect();
     return this.connectToWindow(remoteWindow, remoteOrigin, ChildHandshake);
   }
 
-  private connectToWindow(remoteWindow: Window, remoteOrigin: string, handshake: HandshakeFunction) {
+  private connectToWindow(remoteWindow: Window, remoteOrigin: string, handshake: HandshakeFunction): Promise<Connection | undefined> {
     const messenger = new WindowMessenger({
       localWindow: window,
       remoteWindow,
       remoteOrigin,
     });
-    handshake(messenger, this.methods).then((connection) => {
+    return handshake(messenger, this.methods).then(async (connection) => {
       this.connection = connection;
       this.remoteHandle = connection.remoteHandle();
       while (this.queuedRequests.length) {
         const request = this.queuedRequests.shift()
         if (!request) return;
         try {
-          const result = this.remoteHandle.call(request.methodName, ...request.args);
+          const result = await this.remoteHandle.call(request.methodName, ...request.args);
           request.resolve(result);
         } catch (error) {
           request.reject(error);
         }
       }
+      return connection;
     });
   }
 
-  request(methodName: string, ...args: any[]) {
+  request(methodName: string, ...args: any[]): Promise<any> {
     if (this.remoteHandle) {
       return this.remoteHandle.call(methodName, ...args);
     }
@@ -76,11 +83,19 @@ export default class PostMeService implements OnDestroy {
     });
   }
 
-  ngOnDestroy(): void {
-    this.connection?.close();
+  disconnect(): void {
+    if (!this.connection) return;
+    this.connection.close();
     this.connection = undefined;
     this.remoteHandle = undefined;
   }
+
+  ngOnDestroy(): void {
+    this.disconnect();
+  }
 }
 
-export { PostMeService }
+export {
+  PostMessageService,
+  Connection,
+}
