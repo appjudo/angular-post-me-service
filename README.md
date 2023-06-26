@@ -1,11 +1,11 @@
-# post-me-service
+# angular-post-me-service
 
 Angular service using the post-me library for bidirectional communication between browser windows/frames via window.postMessage
 
 ## Installation
 
 ```sh
-npm install post-me-service
+npm install angular-post-me-service
 ```
 
 ## Usage
@@ -13,7 +13,7 @@ npm install post-me-service
 ### Parent Window
 
 ```typescript
-import PostMeService from 'post-me-service';
+import PostMeService from 'angular-post-me-service';
 import { ElementRef, OnDestroy } from "@angular/core";
 
 export class SomeComponent implements OnDestroy {

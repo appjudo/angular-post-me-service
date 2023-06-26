@@ -1,14 +1,7 @@
-// Copyright (c) 2021-2023 AppJudo Inc.  MIT License.
+// Copyright (c) 2023 AppJudo Inc.  MIT License.
 
-import { Injectable } from "@angular/core";
-import {
-  Connection,
-  ParentHandshake,
-  MethodsType,
-  RemoteHandle,
-  WindowMessenger,
-  ChildHandshake,
-} from "post-me";
+import { Injectable, OnDestroy } from '@angular/core';
+import { Connection, ParentHandshake, MethodsType, RemoteHandle, WindowMessenger, ChildHandshake } from 'post-me';
 
 type HandshakeFunction = typeof ParentHandshake | typeof ChildHandshake;
 
@@ -20,14 +13,14 @@ interface QueuedRequest {
 }
 
 @Injectable({
-  providedIn: "root",
+  providedIn: 'root'
 })
-export class PostMeService {
+export default class PostMeService implements OnDestroy {
   private connection?: Connection;
   private remoteHandle?: RemoteHandle;
   private queuedRequests: QueuedRequest[];
   private methods: MethodsType;
-
+  
   constructor() {
     this.methods = {};
     this.queuedRequests = [];
@@ -41,13 +34,10 @@ export class PostMeService {
     delete this.methods[methodName];
   }
 
-  connectToChildWindow(
-    remoteWindow: Window,
-    remoteOrigin: string,
-    ...args: any
-  ) {
-    const handshake = (messenger: WindowMessenger, methods?: MethodsType) =>
-      ParentHandshake(messenger, methods, ...args);
+  connectToChildWindow(remoteWindow: Window, remoteOrigin: string, ...args: any) {
+    const handshake = (messenger: WindowMessenger, methods?: MethodsType) => (
+      ParentHandshake(messenger, methods, ...args)
+    );
     return this.connectToWindow(remoteWindow, remoteOrigin, handshake);
   }
 
@@ -55,43 +45,42 @@ export class PostMeService {
     return this.connectToWindow(remoteWindow, remoteOrigin, ChildHandshake);
   }
 
-  private connectToWindow(
-    remoteWindow: Window,
-    remoteOrigin: string,
-    handshake: HandshakeFunction
-  ) {
+  private connectToWindow(remoteWindow: Window, remoteOrigin: string, handshake: HandshakeFunction) {
     const messenger = new WindowMessenger({
       localWindow: window,
       remoteWindow,
       remoteOrigin,
     });
-    return handshake(messenger, this.methods).then((connection: Connection) => {
+    handshake(messenger, this.methods).then((connection) => {
       this.connection = connection;
       this.remoteHandle = connection.remoteHandle();
       while (this.queuedRequests.length) {
-        const request = this.queuedRequests.shift();
+        const request = this.queuedRequests.shift()
         if (!request) return;
         try {
-          const result = this.remoteHandle.call(
-            request.methodName,
-            ...request.args
-          );
+          const result = this.remoteHandle.call(request.methodName, ...request.args);
           request.resolve(result);
         } catch (error) {
           request.reject(error);
         }
       }
-      return connection;
     });
   }
 
   request(methodName: string, ...args: any[]) {
-    if (this.connection) {
-      return this.remoteHandle!.call(methodName, ...args);
+    if (this.remoteHandle) {
+      return this.remoteHandle.call(methodName, ...args);
     }
-    const promise = new Promise((resolve, reject) => {
-      this.queuedRequests.push({ methodName, args, resolve, reject });
+    return new Promise((resolve, reject) => {
+      this.queuedRequests.push({methodName, args, resolve, reject});
     });
-    return promise;
+  }
+
+  ngOnDestroy(): void {
+    this.connection?.close();
+    this.connection = undefined;
+    this.remoteHandle = undefined;
   }
 }
+
+export { PostMeService }
