@@ -1,6 +1,6 @@
 {
   "name": "angular-post-me-service",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "author": "AppJudo Inc.",
   "license": "MIT",
   "description": "Angular service using the post-me library for bidirectional communication between browser windows/frames via window.postMessage",
@@ -11,6 +11,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
+    "@angular/compiler": "~12.2.17",
     "typescript": "~5.1.3"
   },
   "peerDependencies": {

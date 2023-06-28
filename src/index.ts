@@ -1,5 +1,6 @@
 // Copyright (c) 2023 AppJudo Inc.  MIT License.
 
+import '@angular/compiler';
 import { Injectable, OnDestroy } from '@angular/core';
 import { Connection, ParentHandshake, MethodsType, RemoteHandle, WindowMessenger, ChildHandshake } from 'post-me';
 
